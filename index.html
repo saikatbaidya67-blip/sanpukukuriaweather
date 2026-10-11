@@ -1,0 +1,73 @@
+englishToBengaliNumber(num) {
+        const banglaDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+        return num.toString().replace(/\d/g, x => banglaDigits[x]);
+    }
+
+    function getDayName(dateString) {
+        const days = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+        const date = new Date(dateString);
+        return days[date.getDay()];
+    }
+
+    async function fetchWeather() {
+        try {
+            // Open-Meteo API Call
+            const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FDhaka`);
+            
+            if (!response.ok) throw new Error("নেটওয়ার্ক সমস্যা");
+            const data = await response.json();
+
+            const current = data.current;
+            const daily = data.daily;
+            
+            // Update UI
+            const weatherContainer = document.getElementById('weather-data');
+            
+            let forecastHTML = '<div class="forecast"><h3>আগামী ৩ দিনের পূর্বাভাস</h3>';
+            
+            // Loop for next 3 days forecast (skip today index 0)
+            for (let i = 1; i <= 3; i++) {
+                forecastHTML += `
+                    <div class="forecast-item">
+                        <span>${getDayName(daily.time[i])}</span>
+                        <span>${weatherDescriptions[daily.weather_code[i]] || 'অজানা'}</span>
+                        <span>${englishToBengaliNumber(Math.round(daily.temperature_2m_max[i]))}° / ${englishToBengaliNumber(Math.round(daily.temperature_2m_min[i]))}°</span>
+                    </div>
+                `;
+            }
+            forecastHTML += '</div>';
+
+            weatherContainer.innerHTML = `
+                <div class="current-weather">
+                    <div class="temp">${englishToBengaliNumber(Math.round(current.temperature_2m))}°C</div>
+                    <div class="condition">${weatherDescriptions[current.weather_code] || 'অজানা'}</div>
+                </div>
+                
+                <div class="details">
+                    <div class="detail-item">
+                        <small>অনুভূত হচ্ছে</small>
+                        <span>${englishToBengaliNumber(Math.round(current.apparent_temperature))}°C</span>
+                    </div>
+                    <div class="detail-item">
+                        <small>আর্দ্রতা</small>
+                        <span>${englishToBengaliNumber(current.relative_humidity_2m)}%</span>
+                    </div>
+                    <div class="detail-item">
+                        <small>বাতাসের গতি</small>
+                        <span>${englishToBengaliNumber(Math.round(current.wind_speed_10m))} কি.মি/ঘণ্টা</span>
+                    </div>
+                </div>
+                ${forecastHTML}
+            `;
+
+        } catch (error) {
+            document.getElementById('weather-data').innerHTML = <p style="color:red;">দুঃখিত, তথ্য লোড করতে সমস্যা হচ্ছে। ইন্টারনেট কানেকশন চেক করুন।</p>;
+        }
+    }
+
+    // Load weather data on page load
+    fetchWeather();
+</script>
+
+</body>
+</html>
